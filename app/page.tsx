@@ -18,13 +18,11 @@ const SeatButton = memo(function SeatButton({
   seat,
   isBooking,
   isMine,
-  isPending,
   onLock,
 }: {
   seat: Seat;
   isBooking: boolean;
   isMine: boolean;
-  isPending: boolean;
   onLock: (seatId: number) => void;
 }) {
   const isLocked = seat.status === "locked";
@@ -62,7 +60,6 @@ export default function Home() {
   const [seats, setSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingSeat, setBookingSeat] = useState<number | null>(null);
-  const [pendingSeat, setPendingSeat] = useState<number | null>(null)
   const [lockedSeat, setLockedSeat] = useState<number | null>(null)
   const [lockToken, setLockToken] = useState<string | null>(null);
 
