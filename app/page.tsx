@@ -17,26 +17,29 @@ const SEATS_PER_ROW = 10;
 const SeatButton = memo(function SeatButton({
   seat,
   isBooking,
+  isPending,
   isMine,
   onLock,
 }: {
   seat: Seat;
   isBooking: boolean;
+  isPending: boolean;
   isMine: boolean;
   onLock: (seatId: number) => void;
 }) {
   const isLocked = seat.status === "locked";
   const isBooked = seat.status === "booked";
+  const isPendingLock = isPending && !isBooked && !isLocked;
 
   const fill = isBooked
     ? "bg-[#A6414A] text-[#F5EFE6]/90"
-    : isLocked
+    : isLocked || isPendingLock
       ? "bg-[#E3A857] text-[#241A08]"
       : "bg-[#3FA796] text-[#07231F] motion-safe:hover:scale-[1.08] motion-safe:hover:bg-[#4CC2AE]";
 
   return (
     <button
-      disabled={isBooked || isLocked || isBooking}
+      disabled={isBooked || isLocked || isBooking || isPending}
       onClick={() => onLock(seat.id)}
       aria-label={`Seat ${seat.id}, ${seat.status}`}
       className={`relative h-8 w-7 shrink-0 rounded-t-[9px] rounded-b-[3px] text-[10px] font-semibold transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E3A857] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0B12] disabled:cursor-not-allowed sm:h-10 sm:w-9 sm:text-xs md:h-11 md:w-10 ${fill} ${
@@ -62,6 +65,7 @@ export default function Home() {
   const [bookingSeat, setBookingSeat] = useState<number | null>(null);
   const [lockedSeat, setLockedSeat] = useState<number | null>(null)
   const [lockToken, setLockToken] = useState<string | null>(null);
+  const [pendingSeat, setPendingSeat] = useState<number | null>(null);
 
   useEffect(() => {
     const existingToken = sessionStorage.getItem("lockToken");
@@ -174,6 +178,8 @@ export default function Home() {
 
   const lockSeat = useCallback(async (seatId: number) => {
     if (!lockToken) return
+
+    setPendingSeat(seatId)
     setBookingSeat(seatId);
 
     try {
@@ -191,11 +197,13 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
+        setPendingSeat(null)
         alert(data.error)
         return;
       }
 
       setLockedSeat(seatId);
+      setPendingSeat(null)
 
       setSeats((currentSeats) =>
         currentSeats.map((seat) =>
@@ -346,6 +354,7 @@ export default function Home() {
                       key={seat.id}
                       seat={seat}
                       isBooking={bookingSeat === seat.id}
+                      isPending={pendingSeat === seat.id}
                       isMine={lockedSeat === seat.id}
                       onLock={lockSeat}
                     />
@@ -358,6 +367,7 @@ export default function Home() {
                       key={seat.id}
                       seat={seat}
                       isBooking={bookingSeat === seat.id}
+                      isPending={pendingSeat === seat.id}
                       isMine={lockedSeat === seat.id}
                       onLock={lockSeat}
                     />

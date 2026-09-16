@@ -1,6 +1,10 @@
 async function testConcurrency() {
+  const baseUrl = (
+    process.env.BASE_URL || "http://localhost:3000"
+  ).replace(/\/$/, "");
+
   const requests = Array.from({ length: 5 }, (_, i) =>
-    fetch("http://localhost:3000/api/lock", {
+    fetch(`${baseUrl}/api/lock`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
