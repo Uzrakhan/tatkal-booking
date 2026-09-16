@@ -4,10 +4,15 @@ import { supabase } from "@/lib/supabase";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
     const seatId = Number(body.seatId);
     const lockToken = body.lockToken;
 
-    if (!Number.isInteger(seatId) || seatId < 1 || seatId > 50) {
+    if (
+      !Number.isInteger(seatId) ||
+      seatId < 1 ||
+      seatId > 50
+    ) {
       return NextResponse.json(
         { error: "Invalid seat ID" },
         { status: 400 }
@@ -21,24 +26,23 @@ export async function POST(request: Request) {
       );
     }
 
-    //rpc
-    const { data, error } = await supabase.rpc("book_seat", {
+    const { data, error } = await supabase.rpc("lock_seat", {
       p_seat_id: seatId,
-      p_lock_token: lockToken
+      p_lock_token: lockToken,
     });
 
     if (error) {
-      if (error.message.includes("Lock expired")) {
+      if (error.message.includes("Seat Already Locked")) {
         return NextResponse.json(
-          { error: "Lock expired or seat is not yours" },
+          { error: "Seat Already Locked" },
           { status: 409 }
         );
       }
 
-      console.error("Booking error:", error);
+      console.error("Lock error:", error);
 
       return NextResponse.json(
-        { error: "Unable to book seat" },
+        { error: "Unable to lock seat" },
         { status: 500 }
       );
     }

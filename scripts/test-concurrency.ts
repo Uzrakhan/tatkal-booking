@@ -1,12 +1,13 @@
 async function testConcurrency() {
   const requests = Array.from({ length: 5 }, (_, i) =>
-    fetch("http://localhost:3000/api/book", {
+    fetch("http://localhost:3000/api/lock", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         seatId: 25,
+        lockToken: crypto.randomUUID(),
       }),
     }).then(async (response) => ({
       request: i + 1,
@@ -19,19 +20,18 @@ async function testConcurrency() {
 
   console.table(results);
 
-  const successfulBookings = results.filter(
+  const successfulLocks = results.filter(
     (result) => result.status === 200
   ).length;
 
-  const rejectedBookings = results.filter(
+  const rejectedLocks = results.filter(
     (result) => result.status === 409
   ).length;
 
-  if (successfulBookings === 1 && rejectedBookings === 4) {
-    console.log("CONCURRENCY TEST PASSED")
+  if (successfulLocks === 1 && rejectedLocks === 4) {
+    console.log("CONCURRENCY TEST PASSED");
   } else {
-    console.error("CONCURRENCY TEST FAILED")
-
+    console.error("CONCURRENCY TEST FAILED");
     process.exitCode = 1;
   }
 }
