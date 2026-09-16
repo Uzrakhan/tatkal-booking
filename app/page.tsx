@@ -10,33 +10,42 @@ type Seat = {
   lock_token: string | null;
 };
 
+const ROW_LABELS = ["A","B","C","D","E"]
+const SEATS_PER_ROW = 10;
+
 
 const SeatButton = memo(function SeatButton({
   seat,
   isBooking,
+  isMine,
   isPending,
   onLock,
 }: {
   seat: Seat;
   isBooking: boolean;
+  isMine: boolean;
   isPending: boolean;
   onLock: (seatId: number) => void;
 }) {
   const isLocked = seat.status === "locked";
   const isBooked = seat.status === "booked";
 
+  const fill = isBooked
+    ? "bg-[#A6414A] text-[#F5EFE6]/90"
+    : isLocked
+      ? "bg-[#E3A857] text-[#241A08]"
+      : "bg-[#3FA796] text-[#07231F] motion-safe:hover:scale-[1.08] motion-safe:hover:bg-[#4CC2AE]";
+
   return (
     <button
       disabled={isBooked || isLocked || isBooking}
       onClick={() => onLock(seat.id)}
-      className={`aspect-square min-w-0 overflow-hidden rounded-lg px-1 text-xs font-semibold transition sm:text-sm ${
-        isBooked
-          ? "cursor-not-allowed bg-red-500 text-white"
-          : isLocked
-            ? "cursor-not-allowed bg-yellow-400 text-black"
-            : "bg-green-500 text-white hover:scale-105"
+      aria-label={`Seat ${seat.id}, ${seat.status}`}
+      className={`relative h-8 w-7 shrink-0 rounded-t-[9px] rounded-b-[3px] text-[10px] font-semibold transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E3A857] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D0B12] disabled:cursor-not-allowed sm:h-10 sm:w-9 sm:text-xs md:h-11 md:w-10 ${fill} ${
+        isMine ? "ring-2 ring-[#F5EFE6] ring-offset-2 ring-offset-[#0D0B12]" : ""
       }`}
     >
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-[9px] bg-white/15" />
       {isBooking
         ? "..."
         : isBooked
@@ -264,61 +273,118 @@ export default function Home() {
 
 
   if (loading) {
-    return <main>Loading seats...</main>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#0D0B12] text-[#A9A0B5]">
+        Loading seats...
+      </main>
+    )
   }
 
   return (
-    <main className="min-h-screen p-8">
-      <h1 className="mb-2 text-3xl font-bold">
-        Tatkal Cinema
-      </h1>
-
-      <p className="mb-8 text-gray-500">
-        Select your seat
-      </p>
-
-      <div className="mb-8 flex justify-center">
-        <div className="w-full max-w-2xl">
-          <div className="mb-10 rounded bg-gray-200 p-3 text-center">
-            SCREEN
+    <main className="min-h-screen bg-[#0D0B12] px-4 py-10 text-[#F5EFE6] sm:px-8">
+      <div className="mx-auto flex max-w-3xl flex-col items-center">
+        <div className="mb-3 flex gap-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <span
+              key={i}
+              className="h-1.5 w-1.5 rounded-full bg-[#E3A857]/70"
+            />
+          ))}
+        </div>
+ 
+        <h1 className="bg-gradient-to-r from-[#F3C978] to-[#C9832E] bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">
+          Tatkal Cinema
+        </h1>
+ 
+        <p className="mt-2 mb-10 text-sm text-[#A9A0B5] sm:text-base">
+          One screening, fifty seats, just pick yours.
+        </p>
+ 
+        <div className="relative mb-3 h-16 w-full max-w-md sm:h-20">
+          <div
+            className="absolute inset-x-0 top-0 h-full rounded-[50%] border-t-2 border-[#E3A857]/60"
+            style={{ clipPath: "inset(0 0 55% 0)" }}
+          />
+        </div>
+        <p className="mb-10 text-xs tracking-widest text-[#E3A857]/80">
+          Screen
+        </p>
+ 
+        {lockedSeat && (
+          <div className="mb-10 w-full max-w-xs rounded-xl border border-[#E3A857]/40 bg-[#17131F] p-5 text-center shadow-[0_0_0_1px_rgba(227,168,87,0.08)]">
+            <p className="text-xs text-[#A9A0B5]">Held for you</p>
+            <p className="mt-1 mb-4 text-2xl font-bold text-[#F5EFE6]">
+              Seat {lockedSeat}
+            </p>
+            <button
+              onClick={confirmBooking}
+              disabled={bookingSeat === lockedSeat}
+              className="w-full rounded-lg bg-[#E3A857] px-6 py-3 font-semibold text-[#241A08] transition motion-safe:hover:bg-[#F3C978] disabled:opacity-50"
+            >
+              {bookingSeat === lockedSeat ? "Booking…" : "Confirm booking"}
+            </button>
           </div>
-
-          {lockedSeat && (
-            <div className="mb-6 rounded-lg border p-4 text-center">
-              <p className="mb-3 font-semibold">
-                Seat {lockedSeat} is locked for you.
-              </p>
-
-              <button
-                onClick={confirmBooking}
-                disabled={bookingSeat === lockedSeat}
-                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+        )}
+ 
+        <div className="flex flex-col gap-2.5 sm:gap-3">
+          {ROW_LABELS.map((rowLabel, rowIndex) => {
+            const start = rowIndex * SEATS_PER_ROW;
+            const rowSeats = seats.slice(start, start + SEATS_PER_ROW);
+            const left = rowSeats.slice(0, 5);
+            const right = rowSeats.slice(5, 10);
+ 
+            if (rowSeats.length === 0) return null;
+ 
+            return (
+              <div
+                key={rowLabel}
+                className="flex items-center justify-center gap-2 sm:gap-3"
               >
-                {bookingSeat === lockedSeat
-                  ? "Booking..."
-                  : "Confirm Booking"}
-              </button>
-            </div>
-          )}
-
-          <div className="grid grid-cols-5 gap-4 sm:grid-cols-10">
-            {seats.map((seat) => (
-             <SeatButton 
-                key={seat.id}
-                seat={seat}
-                isBooking={bookingSeat === seat.id}
-                isPending={pendingSeat === seat.id}
-                onLock={lockSeat}
-             />
-            ))}
+                <span className="w-3 text-xs font-medium text-[#A9A0B5] sm:w-5 sm:text-sm">
+                  {rowLabel}
+                </span>
+                <div className="flex gap-1.5 sm:gap-2">
+                  {left.map((seat) => (
+                    <SeatButton
+                      key={seat.id}
+                      seat={seat}
+                      isBooking={bookingSeat === seat.id}
+                      isMine={lockedSeat === seat.id}
+                      onLock={lockSeat}
+                    />
+                  ))}
+                </div>
+                <div className="w-4 sm:w-8" />
+                <div className="flex gap-1.5 sm:gap-2">
+                  {right.map((seat) => (
+                    <SeatButton
+                      key={seat.id}
+                      seat={seat}
+                      isBooking={bookingSeat === seat.id}
+                      isMine={lockedSeat === seat.id}
+                      onLock={lockSeat}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+ 
+        <div className="mt-10 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-[#A9A0B5] sm:text-sm">
+          <div className="flex items-center gap-2">
+            <span className="h-3.5 w-3 rounded-t-[5px] rounded-b-[2px] bg-[#3FA796]" />
+            Available
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="h-3.5 w-3 rounded-t-[5px] rounded-b-[2px] bg-[#E3A857]" />
+            Locked
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="h-3.5 w-3 rounded-t-[5px] rounded-b-[2px] bg-[#A6414A]" />
+            Booked
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-center gap-6">
-        <div>🟢 Available</div>
-        <div>🟡 Locked</div>
-        <div>🔴 Booked</div>
       </div>
     </main>
   );
