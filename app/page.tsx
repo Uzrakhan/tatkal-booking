@@ -55,21 +55,24 @@ export default function Home() {
   const [bookingSeat, setBookingSeat] = useState<number | null>(null);
   const [pendingSeat, setPendingSeat] = useState<number | null>(null)
   const [lockedSeat, setLockedSeat] = useState<number | null>(null)
-  const [lockToken] = useState(() => {
+  const [lockToken, setLockToken] = useState<string | null>(null);
+
+  useEffect(() => {
     const existingToken = sessionStorage.getItem("lockToken");
 
     if (existingToken) {
-      return existingToken;
+      setLockToken(existingToken);
+      return;
     }
 
     const newToken = crypto.randomUUID();
     sessionStorage.setItem("lockToken", newToken);
-
-    return newToken;
-  });
+    setLockToken(newToken);
+  }, []);
 
 
   useEffect(() => {
+    if (!lockToken) return;
     async function fetchSeats() {
       try {
         const response = await fetch("/api/seats");
@@ -164,6 +167,7 @@ export default function Home() {
   
 
   const lockSeat = useCallback(async (seatId: number) => {
+    if (!lockToken) return
     setBookingSeat(seatId);
 
     try {
@@ -208,7 +212,7 @@ export default function Home() {
   }, [lockToken]);
 
   const confirmBooking = useCallback(async () => {
-    if (!lockedSeat) return;
+    if (!lockedSeat || !lockToken) return;
 
     setBookingSeat(lockedSeat);
 
